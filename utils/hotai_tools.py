@@ -125,150 +125,49 @@ def read_excel_file(filename: str, sheet_name: Optional[str] = None) -> str:
 
 @tool
 def analyze_dataframe(query: str) -> str:
-    """使用 Pandas 邏輯分析當前的資料框架，根據使用者的自然語言查詢執行操作"""
+    """使用 Pandas Agent 分析當前的資料框架，根據使用者的自然語言查詢執行操作"""
     if 'current_df' not in dataframes:
         return "尚未載入任何資料集，請先使用 read_excel_file 載入資料。"
-    
+
     try:
         df = dataframes['current_df']
         
         # 執行資料清理（確保資料型態正確）
-        # 1. 日期欄位處理
         if "日期" in df.columns:
             df["日期"] = pd.to_datetime(df["日期"], errors="coerce")
         
-        # 2. 實績種類欄位處理 
         if "實績種類" in df.columns:
             df["實績種類"] = df["實績種類"].astype(str).str.strip()
         
         # 更新 dataframes
         dataframes['current_df'] = df
-        
-        # 執行實際的分析查詢（依據 solution1.py 的分析邏輯）
-        result_parts = []
-        result_parts.append(f"📊 **分析資料**: current_df")
-        result_parts.append(f"📈 **資料規模**: {len(df):,} 行 × {len(df.columns)} 欄")
-        
-        # 根據查詢內容執行對應分析
-        if any(keyword in query for keyword in ['排行', '最快', '最慢', '前', '後', '名次', '進度']):
-            # 排行分析邏輯（基於 solution1.py）
-            result_parts.append("\n🏆 **排行分析**:")
-            
-            # 時間篩選處理
-            filtered_df = df
-            if any(time_keyword in query for time_keyword in ['1月', '2月', '3月', '4月', '5月', '6月', '1月份', '2月份']):
-                if "日期" in df.columns:
-                    # 提取月份
-                    if '1月' in query:
-                        filtered_df = df[df['日期'].dt.month == 1]
-                    elif '2月' in query:
-                        filtered_df = df[df['日期'].dt.month == 2]
-                    elif '3月' in query:
-                        filtered_df = df[df['日期'].dt.month == 3]
-                    elif '4月' in query:
-                        filtered_df = df[df['日期'].dt.month == 4]
-                    elif '5月' in query:
-                        filtered_df = df[df['日期'].dt.month == 5]
-                    elif '6月' in query:
-                        filtered_df = df[df['日期'].dt.month == 6]
-                    
-                    result_parts.append(f"時間篩選後資料: {len(filtered_df):,} 行")
-                else:
-                    result_parts.append("⚠️ 沒有日期欄位，無法進行時間篩選")
-            
-            # 檢查是否有台數或數值欄位
-            numeric_cols = filtered_df.select_dtypes(include=['number']).columns
-            if len(numeric_cols) > 0:
-                # 找主要數值欄位（台數、受訂數、銷售數等）
-                main_numeric_col = None
-                for col in ['台數', '受訂數', '銷售數', '目標數', '實績數']:
-                    if col in filtered_df.columns:
-                        main_numeric_col = col
-                        break
-                if not main_numeric_col and len(numeric_cols) > 0:
-                    main_numeric_col = numeric_cols[0]
-                
-                # 執行 groupby 分析（依據原程式規則）
-                group_cols = []
-                if '據點代碼' in filtered_df.columns and '據點' in filtered_df.columns:
-                    group_cols = ['據點代碼', '據點']
-                elif '經銷商代碼' in filtered_df.columns and '經銷商名稱' in filtered_df.columns:
-                    group_cols = ['經銷商代碼', '經銷商名稱']
-                elif '車種代碼' in filtered_df.columns and '車種名稱' in filtered_df.columns:
-                    group_cols = ['車種代碼', '車種名稱']
-                elif '據點代碼' in filtered_df.columns:
-                    group_cols = ['據點代碼']
-                elif '經銷商代碼' in filtered_df.columns:
-                    group_cols = ['經銷商代碼']
-                
-                if group_cols and main_numeric_col:
-                    summary = filtered_df.groupby(group_cols)[main_numeric_col].sum().reset_index()
-                    
-                    # 排序（根據查詢內容決定升序或降序）
-                    ascending = '最慢' in query or '最少' in query
-                    summary = summary.sort_values(main_numeric_col, ascending=ascending)
-                    
-                    # 顯示結果
-                    result_type = "最慢" if ascending else "最快"
-                    result_parts.append(f"依 {main_numeric_col} 排行 ({result_type}前5名):")
-                    
-                    for i, (_, row) in enumerate(summary.head(5).iterrows(), 1):
-                        if len(group_cols) > 1:
-                            name_display = f"{row[group_cols[0]]} ({row[group_cols[1]]})"
-                        else:
-                            name_display = str(row[group_cols[0]])
-                        result_parts.append(f"  {i}. {name_display}: {row[main_numeric_col]:,}")
-                    
-                    # 如果查詢要求單一結果，返回第一名
-                    if len(summary) > 0:
-                        top_result = summary.iloc[0]
-                        if len(group_cols) > 1:
-                            winner = f"{top_result[group_cols[0]]} ({top_result[group_cols[1]]})"
-                        else:
-                            winner = str(top_result[group_cols[0]])
-                        result_parts.append(f"\n🎯 **結果**: {winner} ({result_type}，{main_numeric_col}: {top_result[main_numeric_col]:,})")
-                else:
-                    result_parts.append("無法識別適當的分組欄位進行排行分析")
-            else:
-                result_parts.append("沒有可用的數值欄位進行排行分析")
-        
-        elif any(keyword in query for keyword in ['車種', '車款', '型號']):
-            # 車種分析
-            if '車種名稱' in df.columns:
-                car_analysis = df.groupby('車種名稱').agg({
-                    col: 'sum' for col in df.select_dtypes(include=['number']).columns
-                }).reset_index()
-                result_parts.append("\n🚗 **車種分析**:")
-                for _, row in car_analysis.head(10).iterrows():
-                    main_value = row.iloc[1] if len(row) > 1 else 0  # 第一個數值欄位
-                    result_parts.append(f"  • {row['車種名稱']}: {main_value:,.0f}")
-            else:
-                result_parts.append("找不到車種名稱欄位")
-        
-        elif any(keyword in query for keyword in ['統計', '摘要', '概況']):
-            # 統計摘要
-            numeric_cols = df.select_dtypes(include=['number']).columns
-            if len(numeric_cols) > 0:
-                result_parts.append("\n📊 **數值欄位統計**:")
-                for col in numeric_cols[:5]:  # 顯示前5個數值欄位
-                    stats = df[col].describe()
-                    result_parts.append(f"  • {col}: 總計 {stats['sum']:,.0f}, 平均 {stats['mean']:.1f}, 標準差 {stats['std']:.1f}")
-            else:
-                result_parts.append("沒有數值欄位可進行統計")
-        
-        else:
-            # 一般性資訊
-            result_parts.append("\n📋 **欄位資訊**:")
-            for i, col in enumerate(df.columns[:8], 1):  # 顯示前8個欄位
-                non_null = df[col].count()
-                unique_count = df[col].nunique()
-                result_parts.append(f"  {i}. {col} ({df[col].dtype}): {non_null:,} 非空值, {unique_count:,} 唯一值")
-        
-        return "\n".join(result_parts)
+
+        # 使用 LangChain Pandas Agent 進行分析（和 solution1.py 完全一致）
+        from langchain_experimental.agents import create_pandas_dataframe_agent
+        from langchain_openai import ChatOpenAI
+        from langchain.agents.agent_types import AgentType
+
+        custom_llm = ChatOpenAI(
+            temperature=0,
+            model="gpt-4o-2024-11-20"
+        )
+
+        df_agent = create_pandas_dataframe_agent(
+            custom_llm,
+            df,
+            verbose=True,
+            agent_type=AgentType.OPENAI_FUNCTIONS,
+            allow_dangerous_code=True
+        )
+
+        # 執行查詢
+        result = df_agent.run(query)
+        return result
         
     except Exception as e:
-        return f"❌ 分析過程發生錯誤: {str(e)}"
+        return f"分析時發生錯誤: {str(e)}
 
+錯誤詳情: {type(e).__name__}"
 
 # ========================================
 # Solution3.py 工具 - 目標 vs 實際分析
