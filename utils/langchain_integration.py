@@ -1,9 +1,10 @@
 """
 LangChain 整合模組
-整合現有的 solution_combine.py 功能到 Streamlit 應用
+完整複製 solution_combine.py 的 LangChain 實現到 Streamlit 應用
 """
 import os
 import pandas as pd
+import numpy as np
 from typing import Dict, List, Optional, Any
 import streamlit as st
 from .hotai_tools import get_all_tools, generate_mapping_text, BusinessCalculator, dataframes
@@ -77,7 +78,7 @@ class StreamlitLangChainAgent:
             self.mapping_text = f"映射表載入失敗: {str(e)}"
     
     def setup_tools(self):
-        """設置分析工具 - 使用 HOTAI 專用工具"""
+        """設置分析工具 - 使用完整的 HOTAI 工具集"""
         # 取得所有 HOTAI 工具
         self.tools = get_all_tools()
         
@@ -126,10 +127,9 @@ class StreamlitLangChainAgent:
         self.tools.extend([calculate_business_metrics, get_system_status])
     
     def create_agent(self):
-        """創建 LangChain Agent - 使用原始 solution_combine.py 的完整 system_message"""
-        # 直接使用原程式的完整 system_message
-        system_message = f"""
-你是一個資料分析助理，能同時處理兩大類任務──「一般性資料探索與分析」以及「目標 vs. 實際 銷售達標比對」。請依照使用者問題，自動判斷並執行最合適的流程。
+        """創建 LangChain Agent - 使用 solution_combine.py 的完整原始 system_message"""
+        # 完整複製 solution_combine.py 中的 system_message
+        system_message = f"""你是一個資料分析助理，能同時處理兩大類任務──「一般性資料探索與分析」以及「目標 vs. 實際 銷售達標比對」。請依照使用者問題，自動判斷並執行最合適的流程。
 
   # 運算與名詞定義
   **常見運算定義：**
@@ -210,6 +210,8 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
     2. 篩選該分組所有記錄
     3. 第二層級 groupby + sum → 排序取前 N
 
+
+
 # 目標 vs. 實際 銷售達標比對流程
 - 適用情境：使用者詢問「經銷商／營業所達標狀況」、「經銷商／營業所達標數」、「目標 vs. 實際 差異分析」等。
 - 工具順序：
@@ -234,7 +236,7 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
 - 若資料不足或欄位不符，請明確提出並請求補充。
 - 若使用者輸入的是經銷商名稱與營業所名稱，請參照下列對應資訊查找對應的代碼：{self.mapping_text}
 - **若結果只回傳了某個代碼（如據點代碼），務必再到原始 DataFrame 中以該代碼為 key，抓出對應的「據點名稱」或「營業所」欄位，一併回覆**。
-- 在group by 代碼的時候，必須連同名稱一並納入再去group by。
+- 在group by 代碼的時候，必須連同名稱一併納入再叫group by。
 """
         
         prompt = ChatPromptTemplate.from_messages([
@@ -244,7 +246,7 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
         ])
         
         try:
-            # 轉換工具為 OpenAI Functions 格式
+            # 轉換工具為 OpenAI Functions 格式（與原程式相同）
             functions = [format_tool_to_openai_function(tool) for tool in self.tools]
             
             # 創建 agent（使用與原程式相同的配置）
@@ -260,7 +262,7 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
             st.error(f"Agent 創建失敗: {str(e)}")
     
     def query(self, question: str) -> Dict[str, Any]:
-        """查詢 Agent - 模仿原程式的 query_agent 函數"""
+        """查詢 Agent - 完全模仿原程式的 query_agent 函數"""
         if not self.agent_executor:
             return {
                 "output": "❌ AI 助理未正確初始化，請檢查 OpenAI API Key 設定",
@@ -271,14 +273,14 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
         
         try:
             with get_openai_callback() as cb:
-                # 使用與原程式相同的參數
+                # 使用與原程式完全相同的參數
                 response = self.agent_executor.invoke(
                     {"input": question},
                     return_intermediate_steps=True,
                     include_run_info=True
                 )
             
-            # 準備回傳結果
+            # 準備回傳結果（與原程式邏輯一致）
             result = {
                 "output": response["output"],
                 "cost": cb.total_cost,
@@ -287,7 +289,7 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
                 "error": False
             }
             
-            # 如果有中間步驟，可以選擇性加入（在 Streamlit 中通常不顯示）
+            # 如果有中間步驟，生成步驟摘要（在 Streamlit 中選擇性顯示）
             if "intermediate_steps" in response and len(response["intermediate_steps"]) > 0:
                 steps_info = []
                 for i, step in enumerate(response["intermediate_steps"]):
@@ -306,7 +308,7 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
                 "tokens": 0
             }
     
-    # 輔助分析方法
+    # 輔助分析方法（與原程式保持一致）
     def generate_summary(self, df: pd.DataFrame) -> str:
         """生成資料摘要"""
         summary = f"""
