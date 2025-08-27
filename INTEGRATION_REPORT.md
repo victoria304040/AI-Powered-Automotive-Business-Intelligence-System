@@ -820,6 +820,45 @@ def analyze_dataframe(query: str) -> str:
 - ✅ **Git 版本控制**：詳細記錄修復過程和原因
 - ✅ **文件更新**：更新技術文檔反映關鍵修復
 
+### 📝 後續發現與修復
+
+#### 4. 語法錯誤修復（2025/08/27）
+
+**發現問題**：用戶測試時遇到語法錯誤
+```python
+❌ 錯誤訊息: unterminated f-string literal (detected at line 168) (hotai_tools.py, line 168)
+```
+
+**問題根因**：在先前的修復過程中，`analyze_dataframe` 函數的錯誤處理部分出現了多行 f-string 語法錯誤
+
+**錯誤程式碼**：
+```python
+# hotai_tools.py 第168-170行
+except Exception as e:
+    return f"分析時發生錯誤: {str(e)}
+
+錯誤詳情: {type(e).__name__}"  # ❌ f-string 未正確結束
+```
+
+**修復方案**：
+```python
+# 修復後的正確語法
+except Exception as e:
+    return f"分析時發生錯誤: {str(e)}\n\n錯誤詳情: {type(e).__name__}"
+```
+
+**修復過程**：
+1. ✅ 識別語法錯誤位置（第168行）
+2. ✅ 修正多行 f-string 為單行格式
+3. ✅ 驗證語法修復成功
+4. ✅ 測試 Streamlit 應用程式正常啟動
+5. ✅ 提交修復到 Git repository
+
+**修復結果**：
+- 消除 SyntaxError，LangChain 工具可正常執行
+- 保持錯誤訊息的完整性和可讀性
+- 確保用戶查詢「請提供5/22 TOYOTA各車種的販賣台數」能正常處理
+
 ### 📝 未來預防措施
 
 #### 1. 整合流程改進
@@ -829,6 +868,7 @@ def analyze_dataframe(query: str) -> str:
 2. 建立完整的回歸測試套件
 3. 任何核心功能變更都需要明確的技術評估
 4. 保持原型程式作為功能基準參考
+5. 新增語法檢查步驟到 CI/CD 流程
 ```
 
 #### 2. 品質檢查點
@@ -839,6 +879,8 @@ def analyze_dataframe(query: str) -> str:
 □ AI 模型回應品質確認
 □ 錯誤處理機制完整性
 □ 效能基準符合預期
+□ Python 語法檢查 (pyflakes/pylint)
+□ F-string 語法驗證
 ```
 
 ---
@@ -858,6 +900,7 @@ def analyze_dataframe(query: str) -> str:
 - **業務規則**: 1000+ 行 system_message 完整保留
 - **測試覆蓋**: 5 個核心功能自動化測試
 - **文件完整**: 6 個詳細說明文件
+- **問題修復**: 2 個關鍵技術問題完整解決（硬編碼分析 + 語法錯誤）
 
 ### 🚀 即時可用
 HOTAI MOTOR 銷售數據分析系統現已準備就緒，具備完整的 Web 介面和專業級 AI 分析功能。用戶可以立即開始使用自然語言查詢進行複雜的銷售數據分析，無需任何編程知識。
