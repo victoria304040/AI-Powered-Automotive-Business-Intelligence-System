@@ -142,30 +142,159 @@ def analyze_dataframe(query: str) -> str:
         # 更新 dataframes
         dataframes['current_df'] = df
 
-        # 使用 LangChain Pandas Agent 進行分析（和 solution1.py 完全一致）
+        # 使用 LangChain Pandas Agent 進行分析（優化版本）
         from langchain_experimental.agents import create_pandas_dataframe_agent
         from langchain_openai import ChatOpenAI
         from langchain.agents.agent_types import AgentType
 
+        # 配置 LLM 參數以確保完整輸出
         custom_llm = ChatOpenAI(
             temperature=0,
-            model="gpt-4o-2024-11-20"
+            model="gpt-4o-2024-11-20",
+            max_tokens=4000,  # 增加最大 Token 數
+            model_kwargs={
+                "response_format": {"type": "text"}  # 確保文本格式輸出
+            }
         )
 
+        # 創建 Pandas Agent 並配置輸出選項
         df_agent = create_pandas_dataframe_agent(
             custom_llm,
             df,
             verbose=True,
             agent_type=AgentType.OPENAI_FUNCTIONS,
-            allow_dangerous_code=True
+            allow_dangerous_code=True,
+            max_execution_time=30,  # 設定執行時間限制
+            handle_parsing_errors=True,  # 處理解析錯誤
+            prefix="""
+你是一個專業的數據分析師。對於任何查詢，請：
+1. 執行完整的數據分析，包含所有具體數值
+2. 顯示完整的表格內容，不要省略任何數字
+3. 如果結果很多，顯示前10名並說明總數
+4. 確保所有數值都清楚顯示，不要用省略號(...)替代
+
+重要：請務必顯示實際的數字，而不是格式範例！
+"""
         )
 
-        # 執行查詢
-        result = df_agent.run(query)
+        # 增強查詢以確保完整數據顯示
+        enhanced_query = f"""
+{query}
+
+請確保：
+1. 顯示所有實際數值，不要使用省略號或格式範例
+2. 如果資料很多，請至少顯示前10筆完整結果
+3. 包含具體的數字統計資訊
+4. 用清楚的表格格式呈現結果
+"""
+
+        # 執行增強查詢
+        result = df_agent.run(enhanced_query)
+        
+        # 後處理：確保結果包含實際數據
+        if "..." in result or "範例" in result or "格式" in result:
+            # 如果結果包含省略符號，嘗試重新查詢並要求具體數值
+            fallback_query = f"請提供 {query} 的具體數值結果，顯示完整的前10筆資料，包含所有數字"
+            result = df_agent.run(fallback_query)
+        
         return result
         
     except Exception as e:
         return f"分析時發生錯誤: {str(e)}\n\n錯誤詳情: {type(e).__name__}"
+
+
+@tool
+def get_detailed_analysis(query: str, limit: int = 10) -> str:
+    """專門用於獲取詳細數值分析結果的工具，確保顯示完整數字"""
+    if 'current_df' not in dataframes:
+        return "尚未載入任何資料集，請先使用 read_excel_file 載入資料。"
+    
+    try:
+        import re
+        df = dataframes['current_df']
+        
+        # 資料清理
+        if "日期" in df.columns:
+            df["日期"] = pd.to_datetime(df["日期"], errors="coerce")
+        
+        # 解析查詢中的關鍵資訊
+        date_pattern = r'(\d{1,2})/(\d{1,2})'
+        brand_pattern = r'(TOYOTA|HONDA|NISSAN|MAZDA|SUBARU|SUZUKI|MITSUBISHI)'
+        
+        date_match = re.search(date_pattern, query)
+        brand_match = re.search(brand_pattern, query, re.IGNORECASE)
+        
+        # 進行篩選
+        filtered_df = df.copy()
+        
+        if date_match:
+            month, day = int(date_match.group(1)), int(date_match.group(2))
+            if month <= 12:  # 假設是 M/D 格式
+                filtered_df = filtered_df[
+                    (filtered_df['日期'].dt.month == month) &
+                    (filtered_df['日期'].dt.day == day)
+                ]
+        
+        if brand_match:
+            brand = brand_match.group(1).upper()
+            # 搜尋可能包含品牌名稱的欄位
+            brand_cols = [col for col in filtered_df.columns if '車' in col or '品牌' in col or '型號' in col]
+            if brand_cols:
+                brand_filter = filtered_df[brand_cols[0]].str.contains(brand, case=False, na=False)
+                filtered_df = filtered_df[brand_filter]
+        
+        # 尋找販賣台數相關欄位
+        sales_cols = [col for col in filtered_df.columns 
+                     if any(keyword in col for keyword in ['台數', '銷售數', '販賣', '銷售', '台', '數量'])]
+        
+        # 尋找車種相關欄位
+        car_cols = [col for col in filtered_df.columns 
+                   if any(keyword in col for keyword in ['車種', '車型', '型號', '車名', '產品'])]
+        
+        if not sales_cols:
+            return "找不到販賣台數相關欄位，請確認資料格式"
+            
+        if not car_cols:
+            return "找不到車種相關欄位，請確認資料格式"
+        
+        sales_col = sales_cols[0]
+        car_col = car_cols[0]
+        
+        # 進行分組統計
+        if len(filtered_df) == 0:
+            return "根據查詢條件找不到相關資料"
+            
+        # 轉換銷售數為數值
+        filtered_df[sales_col] = pd.to_numeric(filtered_df[sales_col], errors='coerce')
+        
+        # 按車種分組統計
+        result_df = filtered_df.groupby(car_col)[sales_col].sum().reset_index()
+        result_df = result_df.sort_values(sales_col, ascending=False).head(limit)
+        
+        # 生成詳細結果
+        result_text = f"## 查詢結果\n\n"
+        if date_match:
+            result_text += f"**日期**: {date_match.group(0)}\n"
+        if brand_match:
+            result_text += f"**品牌**: {brand_match.group(1)}\n"
+        result_text += f"**總筆數**: {len(filtered_df)}\n"
+        result_text += f"**顯示範圍**: 前{min(limit, len(result_df))}名\n\n"
+        
+        result_text += f"| 排名 | {car_col} | {sales_col} |\n"
+        result_text += "|------|----------|----------|\n"
+        
+        for idx, (_, row) in enumerate(result_df.iterrows(), 1):
+            car_name = str(row[car_col])
+            sales_num = int(row[sales_col]) if not pd.isna(row[sales_col]) else 0
+            result_text += f"| {idx} | {car_name} | {sales_num:,} |\n"
+        
+        total_sales = result_df[sales_col].sum()
+        result_text += f"\n**前{len(result_df)}名總計**: {total_sales:,.0f} 台"
+        
+        return result_text
+        
+    except Exception as e:
+        return f"詳細分析時發生錯誤: {str(e)}\n\n錯誤詳情: {type(e).__name__}"
 
 # ========================================
 # Solution3.py 工具 - 目標 vs 實際分析
@@ -495,6 +624,7 @@ def get_all_tools():
         read_excel_head,
         read_excel_file,
         analyze_dataframe,
+        get_detailed_analysis,  # 新增的詳細分析工具
         # Solution3.py 工具  
         list_and_classify_files,
         load_excel_file,
