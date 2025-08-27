@@ -165,9 +165,7 @@ def analyze_dataframe(query: str) -> str:
         return result
         
     except Exception as e:
-        return f"分析時發生錯誤: {str(e)}
-
-錯誤詳情: {type(e).__name__}"
+        return f"分析時發生錯誤: {str(e)}\n\n錯誤詳情: {type(e).__name__}"
 
 # ========================================
 # Solution3.py 工具 - 目標 vs 實際分析
