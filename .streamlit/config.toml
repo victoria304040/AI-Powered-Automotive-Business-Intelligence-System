@@ -1,0 +1,23 @@
+[global]
+# Streamlit configuration for deployment
+
+# Theme configuration
+[theme]
+primaryColor = "#1f77b4"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f2f6"
+textColor = "#262730"
+font = "sans serif"
+
+# Server configuration for deployment
+[server]
+# Maximum file upload size (200MB)
+maxUploadSize = 200
+# Enable CORS for API access
+enableCORS = true
+# Enable WebSocket compression
+enableWebsocketCompression = true
+
+# Browser configuration
+[browser]
+gatherUsageStats = false

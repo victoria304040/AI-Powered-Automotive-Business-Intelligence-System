@@ -1,0 +1,36 @@
+# Core Streamlit and Data Processing
+streamlit>=1.28.0
+pandas>=1.5.0
+numpy>=1.21.0
+openpyxl>=3.0.0
+
+# AI and LangChain Dependencies
+openai>=1.0.0
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-experimental>=0.0.50
+
+# LangChain Related Packages
+langchain-core>=0.1.0
+langchain-community>=0.0.20
+
+# Additional Data Processing
+xlrd>=2.0.0
+xlsxwriter>=3.0.0
+
+# Data Processing and Analysis
+glob2>=0.7
+typing-extensions>=4.0.0
+
+# UI and Visualization
+plotly>=5.0.0
+matplotlib>=3.5.0
+seaborn>=0.11.0
+
+# Utility Libraries
+python-dotenv>=0.19.0
+requests>=2.25.0
+
+# Compatibility
+pydantic>=1.10.0
+tiktoken>=0.4.0
