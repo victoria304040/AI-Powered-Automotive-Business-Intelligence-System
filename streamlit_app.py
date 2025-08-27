@@ -379,11 +379,11 @@ def qa_interface_page():
                 with st.spinner("正在分析..."):
                     try:
                         # 這裡將整合您的 LangChain 程式碼
-                        response = generate_response(prompt)
-                        st.markdown(response)
+                        response_result = generate_response_with_debug(prompt)
+                        st.markdown(response_result)
                         
                         # 添加助手回應
-                        st.session_state.chat_history.append({"role": "assistant", "content": response})
+                        st.session_state.chat_history.append({"role": "assistant", "content": response_result})
                         
                     except Exception as e:
                         error_msg = f"❌ 處理問題時發生錯誤: {str(e)}"
@@ -391,9 +391,10 @@ def qa_interface_page():
                         st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
 
 # 整合 LangChain 的回應生成函數
-def generate_response(prompt: str) -> str:
+def generate_response(prompt: str):
     """
     整合 HOTAI MOTOR LangChain 分析功能的回應生成函數
+    返回完整的 response 物件用於 DEBUG
     """
     try:
         # 匯入 LangChain 整合模組
@@ -405,24 +406,56 @@ def generate_response(prompt: str) -> str:
         # 使用 agent 處理查詢
         response = agent.query(prompt)
         
-        # 準備回傳結果
-        output = response["output"]
-        
-        # 如果有執行步驟資訊，可以選擇性顯示
-        if "steps_summary" in response and response["steps_summary"]:
-            output += f"\n\n---\n*{response['steps_summary']}*"
-        
-        # 如果有成本資訊，可以選擇性顯示
-        if response.get("cost", 0) > 0:
-            output += f"\n\n💰 *API 成本: ${response['cost']:.4f} | Token: {response.get('tokens', 0)}*"
-        
-        return output
+        return {"success": True, "response": response, "error": None}
         
     except ImportError as e:
-        return f"❌ LangChain 模組載入失敗: {str(e)}\n\n請確認已安裝所有必要套件。"
+        error_msg = f"❌ LangChain 模組載入失敗: {str(e)}\n\n請確認已安裝所有必要套件。"
+        return {"success": False, "response": None, "error": error_msg}
     
     except Exception as e:
-        # 備用的簡單回應邏輯
+        error_msg = f"❌ 處理查詢時發生錯誤: {str(e)}\n\n請檢查:\n1. OpenAI API Key 是否正確設定\n2. 網路連線是否正常\n3. 上傳的資料格式是否正確"
+        return {"success": False, "response": None, "error": error_msg}
+
+
+def generate_response_with_debug(prompt: str) -> str:
+    """
+    帶 DEBUG 模式的回應生成函數
+    """
+    import json
+    
+    # 獲取完整回應
+    full_response = generate_response(prompt)
+    
+    # 顯示 DEBUG 資訊
+    st.subheader("🔍 DEBUG MODE")
+    if full_response["success"]:
+        # 顯示原始 LangChain 回應
+        st.text("Raw LangChain Response:")
+        if isinstance(full_response["response"], dict):
+            st.code(json.dumps(full_response["response"], indent=2, ensure_ascii=False), language="json")
+        else:
+            st.code(str(full_response["response"]))
+        
+        # 處理並顯示格式化結果
+        response = full_response["response"]
+        output = response.get("output", str(response))
+        
+        # 如果有執行步驟資訊，可以選擇性顯示
+        if isinstance(response, dict):
+            if "steps_summary" in response and response["steps_summary"]:
+                output += f"\n\n---\n*{response['steps_summary']}*"
+            
+            # 如果有成本資訊，可以選擇性顯示
+            if response.get("cost", 0) > 0:
+                output += f"\n\n💰 *API 成本: ${response['cost']:.4f} | Token: {response.get('tokens', 0)}*"
+        
+        return output
+    else:
+        # 顯示錯誤資訊
+        st.text("Error Response:")
+        st.code(full_response["error"])
+        
+        # 返回備用分析
         if not st.session_state.uploaded_data:
             return "請先上傳資料檔案，然後再進行問答。"
         
@@ -449,7 +482,7 @@ def generate_response(prompt: str) -> str:
                 cols_info += "\n⚠️ 注意: 目前使用簡化版功能。"
                 return cols_info
         
-        return f"❌ 處理查詢時發生錯誤: {str(e)}\n\n請檢查:\n1. OpenAI API Key 是否正確設定\n2. 網路連線是否正常\n3. 上傳的資料格式是否正確"
+        return full_response["error"]
 
 # 系統資訊頁面
 def system_info_page():
