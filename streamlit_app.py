@@ -349,6 +349,9 @@ def qa_interface_page():
                             result = response["output"]
                             st.markdown(result)
                             
+                            # 顯示 DEBUG 資訊
+                            display_debug_info(response, prompt)
+                            
                             # 添加助手回應到聊天記錄
                             st.session_state.chat_history.append({"role": "assistant", "content": result})
                         else:
@@ -381,6 +384,9 @@ def qa_interface_page():
                             result = response["output"]
                             st.markdown(result)
                             
+                            # 顯示 DEBUG 資訊
+                            display_debug_info(response, prompt)
+                            
                             # 添加助手回應到聊天記錄
                             st.session_state.chat_history.append({"role": "assistant", "content": result})
                         else:
@@ -392,6 +398,98 @@ def qa_interface_page():
                         error_msg = f"❌ 處理查詢時發生錯誤: {str(e)}"
                         st.error(error_msg)
                         st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
+
+# DEBUG INFO 顯示函數
+def display_debug_info(response: dict, prompt: str):
+    """顯示 LangChain 執行的詳細 DEBUG 資訊"""
+    import json
+    
+    st.markdown("---")
+    st.markdown("## **🔍 DEBUG INFO**")
+    
+    # 1. Tool Invocations (工具調用記錄)
+    with st.expander("🔧 Tool Invocations", expanded=False):
+        if "intermediate_steps" in response and response["intermediate_steps"]:
+            st.markdown("### LangChain 工具調用記錄")
+            for i, step in enumerate(response["intermediate_steps"]):
+                try:
+                    tool_name = step[0].tool
+                    tool_input = step[0].tool_input
+                    tool_output = step[1]
+                    
+                    st.markdown(f"**步驟 {i+1}:**")
+                    st.code(f"Invoking: {tool_name}", language="text")
+                    st.markdown(f"**輸入:** `{tool_input}`")
+                    st.markdown("**輸出:**")
+                    st.code(str(tool_output), language="text")
+                    st.markdown("---")
+                except Exception as e:
+                    st.error(f"解析步驟 {i+1} 時發生錯誤: {str(e)}")
+        else:
+            st.info("此次查詢沒有工具調用記錄")
+    
+    # 2. Python Query (Python 執行查詢)
+    with st.expander("🐍 Python Query", expanded=False):
+        if "intermediate_steps" in response and response["intermediate_steps"]:
+            python_queries = []
+            for i, step in enumerate(response["intermediate_steps"]):
+                try:
+                    tool_name = step[0].tool
+                    tool_input = step[0].tool_input
+                    
+                    # 查找 python_repl_ast 或相關的 Python 執行
+                    if "python" in tool_name.lower() or "repl" in tool_name.lower():
+                        python_queries.append(f"步驟 {i+1} - {tool_name}:")
+                        python_queries.append(str(tool_input))
+                        python_queries.append("---")
+                    elif isinstance(tool_input, dict) and 'query' in str(tool_input).lower():
+                        python_queries.append(f"步驟 {i+1} - {tool_name} 查詢:")
+                        python_queries.append(str(tool_input))
+                        python_queries.append("---")
+                except:
+                    continue
+            
+            if python_queries:
+                st.markdown("### Python 執行內容")
+                for query in python_queries:
+                    if query == "---":
+                        st.markdown("---")
+                    elif "步驟" in query:
+                        st.markdown(f"**{query}**")
+                    else:
+                        st.code(query, language="python")
+            else:
+                st.info("此次查詢沒有找到 Python 執行內容")
+        else:
+            st.info("沒有中間步驟記錄")
+    
+    # 3. Raw Response (LangChain 原始回傳)
+    with st.expander("📄 Raw Response", expanded=False):
+        st.markdown("### LangChain 完整原始回應")
+        try:
+            if isinstance(response, dict):
+                st.code(json.dumps(response, indent=2, ensure_ascii=False), language="json")
+            else:
+                st.code(str(response), language="text")
+        except Exception as e:
+            st.error(f"顯示原始回應時發生錯誤: {str(e)}")
+            st.code(str(response), language="text")
+    
+    # 4. 額外資訊
+    with st.expander("📊 執行統計", expanded=False):
+        st.markdown("### 查詢資訊")
+        st.markdown(f"**原始查詢:** `{prompt}`")
+        
+        if hasattr(response, 'get'):
+            # 如果有統計資訊
+            if 'usage' in response:
+                st.json(response['usage'])
+            
+            # 顯示回應的所有 key
+            st.markdown("**回應結構:**")
+            st.code(f"回應類型: {type(response)}")
+            if isinstance(response, dict):
+                st.code(f"回應欄位: {list(response.keys())}")
 
 # 主要應用程式
 def main():

@@ -6,6 +6,70 @@
 
 ---
 
+## [v1.2.0] - 2025-08-28
+
+### ✨ 新增功能 (Added)
+- **DEBUG INFO 除錯資訊區塊**：新增完整的 LangChain 執行除錯功能，便於比對 PyCharm 和 Streamlit 的執行結果
+
+### 🔍 **功能描述**
+用戶要求能夠比對 PyCharm 和 Streamlit 環境中 LangChain 的執行結果，以便進行除錯和驗證分析過程的一致性。
+
+### 📝 **用戶原始需求**
+> 我想比對 PyCharm 和 Streamlit 的 LangChain 執行結果，請在 Streamlit 程式中新增一個「DEBUG INFO」區塊，內容包括：
+> 1. LangChain 工具調用紀錄 (Tool Invocations)  
+> 2. Python 執行的 query  
+> 3. LangChain 原始回傳 (Raw Response)
+
+### ✅ **實作內容**
+1. **🔧 Tool Invocations**：顯示 LangChain 工具調用的完整記錄
+   - 每個步驟的工具名稱、輸入參數、輸出結果
+   - 以 `Invoking: {tool_name}` 格式顯示調用訊息
+   - 支援多步驟工具鏈的完整追蹤
+
+2. **🐍 Python Query**：展示 Python 執行的查詢內容
+   - 自動識別 `python_repl_ast` 和相關 Python 執行工具
+   - 顯示實際執行的 Python 程式碼
+   - 支援複雜查詢中的多段 Python 執行
+
+3. **📄 Raw Response**：完整的 LangChain 原始回應
+   - JSON 格式化顯示完整回應結構
+   - 包含所有中間步驟和執行統計
+   - 便於深度除錯和效能分析
+
+4. **📊 執行統計**：額外的執行資訊
+   - 原始查詢內容
+   - 回應結構分析
+   - 執行步驟統計
+
+### 🔧 技術實作 (Technical Implementation)
+```python
+def display_debug_info(response: dict, prompt: str):
+    # 四個主要區塊的可折疊展示器 (st.expander)
+    # 1. Tool Invocations - 工具調用記錄
+    # 2. Python Query - Python 執行內容  
+    # 3. Raw Response - 原始回應 (JSON 格式)
+    # 4. 執行統計 - 查詢和回應分析
+```
+
+### 📁 檔案異動
+```
+修改的檔案：
+├── streamlit_app.py        # 新增：display_debug_info() 函數
+│                          # 修改：兩處 query_agent() 調用點加入 DEBUG 顯示
+└── CHANGELOG.md           # 更新：記錄 DEBUG INFO 功能實作
+```
+
+### 🎯 應用場景
+- **開發除錯**：比較不同環境的執行結果
+- **效能分析**：監控工具調用和執行時間
+- **問題診斷**：深入了解 LangChain 的執行過程
+- **學習研究**：了解 AI Agent 的工作原理
+
+### 💡 使用方式
+在智能問答介面提出問題後，系統會自動在回答下方顯示 **🔍 DEBUG INFO** 區塊，包含四個可展開的資訊區域，提供完整的執行追蹤資訊。
+
+---
+
 ## [v1.1.1] - 2025-01-25
 
 ### 🐛 修復問題 (Fixed)
@@ -218,5 +282,5 @@
 
 ---
 
-**最後更新**：2025-01-25  
+**最後更新**：2025-08-28  
 **維護者**：HOTAI MOTOR Development Team
