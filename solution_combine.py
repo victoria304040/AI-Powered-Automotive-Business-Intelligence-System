@@ -25,6 +25,54 @@ llm = ChatOpenAI(temperature=0, model="gpt-4.1")
 # 全域字典儲存多個 DataFrame
 dataframes = {}
 
+# 新增映射表查詢工具
+@tool
+def get_dealer_mapping(query_code: str) -> str:
+    """查詢經銷商或營業所的映射資訊
+    
+    Args:
+        query_code: 要查詢的代碼，可以是經銷商代碼或營業所代碼
+        
+    Returns:
+        str: 對應的映射資訊，包含經銷商名稱和營業所名稱
+    """
+    try:
+        import pandas as pd
+        df = pd.read_excel("Mapping Dataframe.xlsx", dtype=str)
+        
+        # 清理查詢代碼
+        query_code = str(query_code).strip()
+        
+        # 搜尋代碼 - 同時搜尋經銷商代碼和營業所代碼
+        dealer_match = df[df['經銷商代碼'].str.strip() == query_code]
+        site_match = df[df['營業所代碼'].str.strip() == query_code]
+        
+        results = []
+        
+        if len(dealer_match) > 0:
+            # 找到經銷商代碼匹配
+            for _, row in dealer_match.iterrows():
+                dealer_name = row['經銷商名稱'].strip()
+                site_name = row['營業所名稱'].strip() 
+                site_code = row['營業所代碼'].strip()
+                results.append(f"經銷商 {query_code} ({dealer_name}) - 營業所 {site_code} ({site_name})")
+        
+        if len(site_match) > 0:
+            # 找到營業所代碼匹配
+            for _, row in site_match.iterrows():
+                dealer_name = row['經銷商名稱'].strip()
+                dealer_code = row['經銷商代碼'].strip()
+                site_name = row['營業所名稱'].strip()
+                results.append(f"營業所 {query_code} ({site_name}) - 屬於經銷商 {dealer_code} ({dealer_name})")
+        
+        if results:
+            return "找到以下映射資訊:\n" + "\n".join(results)
+        else:
+            return f"找不到代碼 '{query_code}' 的對應資訊。請確認代碼是否正確。"
+            
+    except Exception as e:
+        return f"查詢映射資料時發生錯誤: {str(e)}"
+
 # 工具集合
 tools = [
     list_files,
@@ -35,6 +83,7 @@ tools = [
     load_excel_file,
     classify_file_type,
     compare_target_vs_actual,
+    get_dealer_mapping,  # 新增映射表查詢工具
 ]
 
 # 映射表處理
