@@ -1,3 +1,8 @@
+# API Keys and Secrets
+secret_key
+*.key
+.env
+
 # Python
 __pycache__/
 *.py[cod]
@@ -16,62 +21,19 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# Jupyter Notebook
-.ipynb_checkpoints
-
-# IPython
-profile_default/
-ipython_config.py
-
-# pyenv
-.python-version
-
-# Environments
-.env
-.venv
-env/
+# Virtual environments
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
-
-# Streamlit
-.streamlit/secrets.toml
-
-# API Keys and Secrets
-secret_key
-.env.local
-.env.production
-config/secrets.json
-*.key
+new_venv/
 
 # IDE
 .vscode/
@@ -80,7 +42,7 @@ config/secrets.json
 *.swo
 *~
 
-# OS
+# OS generated files
 .DS_Store
 .DS_Store?
 ._*
@@ -89,40 +51,36 @@ config/secrets.json
 ehthumbs.db
 Thumbs.db
 
-# Word temporary files
-~$*.docx
-~$*.doc
-~$*.xlsx
-~$*.xls
-~$*.pptx
-~$*.ppt
-
-# Logs
-*.log
-logs/
-
 # Temporary files
 *.tmp
 *.temp
 temp/
 tmp/
 
-# Data files (uncomment if you don't want to commit data)
-# *.csv
+# Logs
+*.log
+logs/
+
+# Claude Code settings (local development only)
+.claude/settings.local.json
+
+# Data files (uncomment if you don't want to track data files)
 # *.xlsx
 # *.xls
-# data/
-
-# Test files
-test_data/
-*_test.py
-test_*.py
-
-# Output files
-output/
-results/
-reports/
+# *.csv
 
 # Backup files
+*_backup.py
+*_old.py
 *.bak
-*.backup
+
+# Test files
+test_*.py
+*_test.py
+current_packages.txt
+requirements_check.txt
+requirements_clean.txt
+
+# Documentation drafts (keep only final versions)
+*_draft.md
+*_old.md
