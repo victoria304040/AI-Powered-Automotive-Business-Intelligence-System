@@ -5,6 +5,21 @@ from typing import Dict, List, Optional
 import io
 from datetime import datetime
 
+# 確保 API Key 可用於 LangChain 程式碼
+def setup_api_key():
+    """設定 OpenAI API Key 供 LangChain 使用"""
+    if not os.environ.get("OPENAI_API_KEY"):
+        # 優先使用 Streamlit Cloud secrets
+        if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
+            os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+        # 其次使用本地 secret_key 檔案
+        elif os.path.exists("secret_key"):
+            with open("secret_key", "r", encoding="utf-8") as f:
+                os.environ["OPENAI_API_KEY"] = f.read().strip()
+
+# 設定 API Key
+setup_api_key()
+
 # 導入您現有的 LangChain 程式碼（不做任何修改）
 from solution_combine import query_agent, dataframes
 
@@ -242,10 +257,33 @@ def data_view_page():
 def qa_interface_page():
     st.markdown('<div class="main-header">💬 智能問答</div>', unsafe_allow_html=True)
     
-    # 檢查 API Key 是否存在
-    if not os.path.exists("secret_key"):
-        st.error("❌ 未找到 secret_key 檔案，請確保 OpenAI API Key 已設定")
+    # 檢查 API Key 是否設定（支援 Streamlit Cloud 和本地環境）
+    api_key_available = False
+    
+    # 檢查 Streamlit secrets（雲端環境）
+    if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
+        api_key_available = True
+        api_source = "Streamlit Cloud Secrets"
+    # 檢查環境變數
+    elif os.environ.get("OPENAI_API_KEY"):
+        api_key_available = True
+        api_source = "環境變數"
+    # 檢查本地 secret_key 檔案
+    elif os.path.exists("secret_key"):
+        api_key_available = True
+        api_source = "本地 secret_key 檔案"
+    
+    if not api_key_available:
+        st.error("""
+        ❌ **未找到 OpenAI API Key**
+        
+        請設定 API Key：
+        - **Streamlit Cloud**：在 App settings → Advanced settings → Secrets 中設定 `OPENAI_API_KEY`
+        - **本地開發**：建立 `secret_key` 檔案或設定環境變數 `OPENAI_API_KEY`
+        """)
         return
+    else:
+        st.success(f"✅ API Key 已設定 (來源: {api_source})")
     
     # 聊天介面
     col1, col2 = st.columns([3, 1])

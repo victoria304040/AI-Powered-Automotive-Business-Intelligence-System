@@ -6,6 +6,63 @@
 
 ---
 
+## [v1.1.1] - 2025-01-25
+
+### 🐛 修復問題 (Fixed)
+- **Streamlit Cloud API Key 讀取問題**：修復在 Streamlit Cloud 部署環境中無法正確讀取 OpenAI API Key 的問題
+
+### ❌ **問題描述**
+用戶在 Streamlit Cloud 中已正確設定 `OPENAI_API_KEY` secrets，但智能問答介面仍顯示「❌ 未找到 secret_key 檔案，請確保 OpenAI API Key 已設定」錯誤。
+
+### 🔍 **問題根因**
+1. 程式碼只檢查本地 `secret_key` 檔案，未考慮 Streamlit Cloud secrets
+2. LangChain 模組導入時，環境變數尚未正確設定
+3. API Key 檢查邏輯不完整，未支援多種設定方式
+
+### ✅ **解決方案**
+1. **新增多層次 API Key 檢測**：
+   ```python
+   # 檢查順序：Streamlit secrets → 環境變數 → 本地檔案
+   if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
+       api_key_available = True
+       api_source = "Streamlit Cloud Secrets"
+   elif os.environ.get("OPENAI_API_KEY"):
+       api_key_available = True
+       api_source = "環境變數"
+   elif os.path.exists("secret_key"):
+       api_key_available = True
+       api_source = "本地 secret_key 檔案"
+   ```
+
+2. **預先設定環境變數**：
+   ```python
+   def setup_api_key():
+       if not os.environ.get("OPENAI_API_KEY"):
+           if hasattr(st, 'secrets') and 'OPENAI_API_KEY' in st.secrets:
+               os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
+   ```
+
+3. **改善錯誤訊息**：提供清楚的設定指引，區分雲端和本地環境
+
+### 🔧 改進項目 (Changed)
+- **API Key 檢測增強**：支援 Streamlit Cloud secrets、環境變數、本地檔案三種方式
+- **錯誤訊息優化**：提供具體的設定步驟說明
+- **成功狀態顯示**：顯示 API Key 來源，便於除錯
+
+### 📁 檔案異動
+```
+修改的檔案：
+├── streamlit_app.py        # 修改：新增多層次 API Key 檢測和設定
+└── CHANGELOG.md           # 更新：記錄問題修復過程
+```
+
+### 🎯 技術細節
+- **相容性保證**：同時支援雲端部署和本地開發環境
+- **無侵入性**：不修改原始 LangChain 程式碼，僅在 Streamlit 層處理
+- **錯誤處理**：提供清晰的診斷訊息和解決步驟
+
+---
+
 ## [v1.1.0] - 2025-01-25
 
 ### ✨ 新增功能 (Added)
