@@ -262,7 +262,7 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
             st.error(f"Agent 創建失敗: {str(e)}")
     
     def query(self, question: str) -> Dict[str, Any]:
-        """查詢 Agent - 完全模仿原程式的 query_agent 函數"""
+        """查詢 Agent - 修復版本適配現代 LangChain API"""
         if not self.agent_executor:
             return {
                 "output": "❌ AI 助理未正確初始化，請檢查 OpenAI API Key 設定",
@@ -273,39 +273,81 @@ filtered = df[df['日期'].dt.date == pd.to_datetime('2025-05-22').date()]
         
         try:
             with get_openai_callback() as cb:
-                # 使用與原程式完全相同的參數
-                response = self.agent_executor.invoke(
-                    {"input": question},
-                    return_intermediate_steps=True,
-                    include_run_info=True
-                )
+                # 修復：使用正確的 LangChain API 調用方式
+                response = self.agent_executor.invoke({"input": question})
             
-            # 準備回傳結果（與原程式邏輯一致）
+            # 處理回應格式 - 支援多種可能的回應結構
+            output_text = ""
+            
+            if isinstance(response, dict):
+                # 標準字典回應 - 優先查找 output 欄位
+                if "output" in response:
+                    output_text = str(response["output"])
+                elif "result" in response:
+                    output_text = str(response["result"])  
+                elif "answer" in response:
+                    output_text = str(response["answer"])
+                else:
+                    # 如果沒有標準欄位，嘗試找到最相關的內容
+                    possible_keys = ['text', 'content', 'response', 'message']
+                    for key in possible_keys:
+                        if key in response:
+                            output_text = str(response[key])
+                            break
+                    
+                    # 如果還是沒找到，將整個回應轉為字符串
+                    if not output_text:
+                        output_text = str(response)
+            else:
+                # 直接字符串回應
+                output_text = str(response)
+            
+            # 準備回傳結果
             result = {
-                "output": response["output"],
+                "output": output_text,
                 "cost": cb.total_cost,
                 "tokens": cb.total_tokens,
                 "successful_requests": cb.successful_requests,
-                "error": False
+                "error": False,
+                "raw_response": response  # 保留原始回應用於 DEBUG
             }
             
-            # 如果有中間步驟，生成步驟摘要（在 Streamlit 中選擇性顯示）
-            if "intermediate_steps" in response and len(response["intermediate_steps"]) > 0:
-                steps_info = []
-                for i, step in enumerate(response["intermediate_steps"]):
-                    tool_name = step[0].tool if hasattr(step[0], 'tool') else 'unknown'
-                    steps_info.append(f"步驟 {i+1}: {tool_name}")
-                
-                result["steps_summary"] = f"執行了 {len(response['intermediate_steps'])} 個步驟: {', '.join(steps_info)}"
+            # 檢查是否有中間步驟資訊
+            if isinstance(response, dict) and "intermediate_steps" in response:
+                steps = response["intermediate_steps"]
+                if steps and len(steps) > 0:
+                    steps_info = []
+                    for i, step in enumerate(steps):
+                        try:
+                            # 安全地提取步驟資訊
+                            tool_name = getattr(step[0], 'tool', 'unknown_tool') if hasattr(step[0], 'tool') else 'step'
+                            steps_info.append(f"步驟 {i+1}: {tool_name}")
+                        except (AttributeError, IndexError):
+                            steps_info.append(f"步驟 {i+1}: 處理中")
+                    
+                    result["steps_summary"] = f"執行了 {len(steps)} 個步驟: {', '.join(steps_info)}"
+                else:
+                    result["steps_summary"] = "完成單步處理"
             
             return result
             
         except Exception as e:
+            error_msg = f"❌ 處理問題時發生錯誤: {str(e)}"
+            
+            # 提供更詳細的錯誤診斷
+            if "API" in str(e).upper():
+                error_msg += "\n\n可能原因：OpenAI API 問題，請檢查 API Key 和網路連線。"
+            elif "tool" in str(e).lower():
+                error_msg += "\n\n可能原因：分析工具執行錯誤，請檢查資料格式。"
+            elif "parse" in str(e).lower():
+                error_msg += "\n\n可能原因：回應解析錯誤，請簡化問題重新提問。"
+            
             return {
-                "output": f"❌ 處理問題時發生錯誤: {str(e)}",
+                "output": error_msg,
                 "error": True,
                 "cost": 0,
-                "tokens": 0
+                "tokens": 0,
+                "raw_error": str(e)  # 保留原始錯誤用於 DEBUG
             }
     
     # 輔助分析方法（與原程式保持一致）

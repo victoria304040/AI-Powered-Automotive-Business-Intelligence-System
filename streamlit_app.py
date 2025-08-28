@@ -393,7 +393,7 @@ def qa_interface_page():
 def generate_response(prompt: str):
     """
     整合 HOTAI MOTOR LangChain 分析功能的回應生成函數
-    返回完整的 response 物件用於 DEBUG
+    修復版本：改善錯誤處理和回應格式解析
     """
     try:
         # 匯入 LangChain 整合模組
@@ -405,14 +405,29 @@ def generate_response(prompt: str):
         # 使用 agent 處理查詢
         response = agent.query(prompt)
         
+        # 檢查回應是否包含錯誤
+        if isinstance(response, dict) and response.get("error", False):
+            return {"success": False, "response": None, "error": response.get("output", "未知錯誤")}
+        
         return {"success": True, "response": response, "error": None}
         
     except ImportError as e:
-        error_msg = f"❌ LangChain 模組載入失敗: {str(e)}\n\n請確認已安裝所有必要套件。"
+        error_msg = f"❌ LangChain 模組載入失敗: {str(e)}\n\n請確認已安裝所有必要套件：\n- langchain\n- langchain-openai\n- langchain-experimental\n- tabulate"
         return {"success": False, "response": None, "error": error_msg}
     
     except Exception as e:
-        error_msg = f"❌ 處理查詢時發生錯誤: {str(e)}\n\n請檢查:\n1. OpenAI API Key 是否正確設定\n2. 網路連線是否正常\n3. 上傳的資料格式是否正確"
+        # 增強錯誤診斷
+        error_details = str(e)
+        
+        if "authentication" in error_details.lower() or "api_key" in error_details.lower():
+            error_msg = f"❌ OpenAI API 認證失敗: {error_details}\n\n解決方案：\n1. 檢查 OPENAI_API_KEY 環境變數\n2. 確認 API Key 有效且有足夠額度\n3. 檢查網路連線"
+        elif "rate limit" in error_details.lower():
+            error_msg = f"❌ API 使用頻率超限: {error_details}\n\n解決方案：\n1. 稍後重試\n2. 檢查 API 使用配額\n3. 考慮升級 API 方案"
+        elif "model" in error_details.lower():
+            error_msg = f"❌ 模型存取錯誤: {error_details}\n\n解決方案：\n1. 檢查模型名稱是否正確\n2. 確認帳戶有該模型存取權限"
+        else:
+            error_msg = f"❌ 處理查詢時發生錯誤: {error_details}\n\n請檢查:\n1. 網路連線是否穩定\n2. 上傳的資料格式是否正確\n3. 查詢內容是否合理"
+        
         return {"success": False, "response": None, "error": error_msg}
 
 
