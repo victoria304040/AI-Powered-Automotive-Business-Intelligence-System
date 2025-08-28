@@ -380,7 +380,6 @@ def qa_interface_page():
                     try:
                         # 這裡將整合您的 LangChain 程式碼
                         response_result = generate_response_with_debug(prompt)
-                        st.markdown(response_result)
                         
                         # 添加助手回應
                         st.session_state.chat_history.append({"role": "assistant", "content": response_result})
@@ -420,51 +419,68 @@ def generate_response(prompt: str):
 def generate_response_with_debug(prompt: str) -> str:
     """
     帶 DEBUG 模式的回應生成函數
+    修復版：確保 DEBUG 不影響原始回應品質
     """
     import json
     
     # 獲取完整回應
     full_response = generate_response(prompt)
     
-    # 顯示 DEBUG 資訊
-    st.subheader("🔍 DEBUG MODE")
     if full_response["success"]:
-        # 顯示原始 LangChain 回應
-        st.text("Raw LangChain Response:")
-        if isinstance(full_response["response"], dict):
-            st.code(json.dumps(full_response["response"], indent=2, ensure_ascii=False), language="json")
-        else:
-            st.code(str(full_response["response"]))
-        
-        # 處理並顯示格式化結果
+        # 取得原始回應
         response = full_response["response"]
-        output = response.get("output", str(response))
         
-        # 如果有執行步驟資訊，可以選擇性顯示
+        # 決定要返回給用戶的主要內容（不受 DEBUG 影響）
         if isinstance(response, dict):
-            if "steps_summary" in response and response["steps_summary"]:
-                output += f"\n\n---\n*{response['steps_summary']}*"
-            
-            # 如果有成本資訊，可以選擇性顯示
-            if response.get("cost", 0) > 0:
-                output += f"\n\n💰 *API 成本: ${response['cost']:.4f} | Token: {response.get('tokens', 0)}*"
+            # 如果是字典，優先使用 output 欄位，否則轉換為字符串
+            main_output = response.get("output", response)
+            if not isinstance(main_output, str):
+                main_output = str(main_output)
+        else:
+            # 如果不是字典，直接使用原始回應
+            main_output = str(response)
         
-        return output
+        # === DEBUG 區塊：完全獨立，不影響主要回應 ===
+        st.subheader("🔍 DEBUG MODE")
+        
+        st.text("Raw LangChain Response Type:")
+        st.code(f"Type: {type(response)}")
+        
+        st.text("Raw LangChain Response Content:")
+        if isinstance(response, dict):
+            st.code(json.dumps(response, indent=2, ensure_ascii=False), language="json")
+        else:
+            st.code(str(response))
+        
+        st.text("Processed Output:")
+        st.code(main_output)
+        
+        # === 顯示實際回應給用戶 ===
+        st.markdown("---")
+        st.markdown("**🤖 AI 回應結果:**")
+        st.markdown(main_output)
+        
+        return main_output
+        
     else:
-        # 顯示錯誤資訊
+        # DEBUG：顯示錯誤資訊
+        st.subheader("🔍 DEBUG MODE")
         st.text("Error Response:")
         st.code(full_response["error"])
         
         # 返回備用分析
         if not st.session_state.uploaded_data:
-            return "請先上傳資料檔案，然後再進行問答。"
+            fallback_msg = "請先上傳資料檔案，然後再進行問答。"
+            st.markdown("**Fallback Response:**")
+            st.markdown(fallback_msg)
+            return fallback_msg
         
         # 簡化版分析（當 LangChain 不可用時）
         if st.session_state.current_data is not None:
             df = st.session_state.current_data
             
             if "摘要" in prompt or "總結" in prompt:
-                return f"""
+                fallback_msg = f"""
 📊 **資料摘要**
 - 總行數: {len(df):,}
 - 總欄數: {len(df.columns)}
@@ -474,15 +490,23 @@ def generate_response_with_debug(prompt: str) -> str:
 
 ⚠️ 注意: 目前使用簡化版分析功能。完整的 AI 分析需要正確設定 OpenAI API Key。
                 """
+                st.markdown("**Fallback Response:**")
+                st.markdown(fallback_msg)
+                return fallback_msg
             
             elif "欄位" in prompt or "columns" in prompt.lower():
                 cols_info = "📋 **資料欄位:**\n"
                 for i, col in enumerate(df.columns, 1):
                     cols_info += f"{i}. {col} ({df[col].dtype})\n"
                 cols_info += "\n⚠️ 注意: 目前使用簡化版功能。"
+                st.markdown("**Fallback Response:**")
+                st.markdown(cols_info)
                 return cols_info
         
-        return full_response["error"]
+        error_msg = full_response["error"]
+        st.markdown("**Error Message:**")
+        st.markdown(error_msg)
+        return error_msg
 
 # 系統資訊頁面
 def system_info_page():
