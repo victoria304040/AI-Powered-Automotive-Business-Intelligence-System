@@ -102,20 +102,51 @@ def file_upload_page():
         <li><strong>經銷商目標_2025上半年.xlsx</strong> - 銷售目標資料</li>
         <li><strong>Mapping Dataframe.xlsx</strong> - 經銷商對應表</li>
     </ul>
-    <p>請將這些檔案放置在程式執行目錄中，系統會自動讀取。</p>
+    <p>您可以上傳檔案或使用現有目錄中的檔案。</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # 檔案上傳區域（僅供參考，實際使用現有目錄檔案）
+    # 檔案上傳區域
     col1, col2 = st.columns([2, 1])
     
     with col1:
+        st.markdown("### 📤 檔案上傳")
+        
+        # 檔案上傳器
+        uploaded_files = st.file_uploader(
+            "選擇 Excel 檔案",
+            type=['xlsx', 'xls'],
+            accept_multiple_files=True,
+            help="請上傳：MBIS實績_2025上半年.xlsx、經銷商目標_2025上半年.xlsx、Mapping Dataframe.xlsx"
+        )
+        
+        # 處理上傳的檔案
+        if uploaded_files:
+            st.markdown("### 📋 上傳檔案處理")
+            for uploaded_file in uploaded_files:
+                try:
+                    # 保存檔案到目錄
+                    file_path = uploaded_file.name
+                    with open(file_path, "wb") as f:
+                        f.write(uploaded_file.getbuffer())
+                    
+                    st.success(f"✅ 已保存檔案：{uploaded_file.name}")
+                    
+                    # 顯示檔案基本資訊
+                    file_size = len(uploaded_file.getbuffer())
+                    st.info(f"📁 檔案大小：{file_size:,} bytes")
+                    
+                except Exception as e:
+                    st.error(f"❌ 保存檔案失敗：{uploaded_file.name} - {str(e)}")
+        
+        st.markdown("---")
+        
         st.markdown("### 📁 目前檔案狀態")
         
         # 檢查並顯示檔案狀態
         required_files = {
             "MBIS實績_2025上半年.xlsx": "實際銷售資料",
-            "經銷商目標_2025上半年.xlsx": "銷售目標資料",
+            "經銷商目標_2025上半年.xlsx": "銷售目標資料", 
             "Mapping Dataframe.xlsx": "經銷商對應表"
         }
         
@@ -136,14 +167,24 @@ def file_upload_page():
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.warning("⚠️ 請確保所有必要檔案都存在於程式目錄中")
+            st.warning("⚠️ 請上傳或確保所有必要檔案都存在")
     
     with col2:
         st.markdown("""
         <div class="info-box">
-        <h4>💡 提示</h4>
-        <p>系統使用您現有的 LangChain 程式碼，直接讀取目錄中的檔案。</p>
-        <p>不需要透過網頁上傳，只需確保檔案在正確位置即可。</p>
+        <h4>💡 檔案要求</h4>
+        <ul>
+            <li>支援格式：.xlsx, .xls</li>
+            <li>檔案大小：< 200MB</li>
+            <li>編碼：UTF-8</li>
+        </ul>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        <div class="info-box">
+        <h4>🔧 系統整合</h4>
+        <p>上傳的檔案會自動保存到程式目錄，您現有的 LangChain 程式碼會自動讀取這些檔案。</p>
         </div>
         """, unsafe_allow_html=True)
 

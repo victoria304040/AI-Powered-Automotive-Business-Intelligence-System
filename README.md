@@ -1,245 +1,221 @@
-# HOTAI MOTOR 銷售數據分析平台
+# 🚗 HOTAI MOTOR 銷售數據分析平台
 
-一個基於 Streamlit 的多功能數據分析平台，整合了檔案上傳、資料檢視編輯和 AI 問答功能。
+一個基於 LangChain 和 Streamlit 的智能汽車銷售數據分析系統，專為 HOTAI MOTOR 銷售業務設計。
 
-## 🚀 功能特色
+![Python](https://img.shields.io/badge/python-v3.8+-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-v1.28+-red.svg)
+![LangChain](https://img.shields.io/badge/langchain-v0.1+-green.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-### 📤 資料上傳
-- 支援 Excel (.xlsx, .xls) 和 CSV (.csv) 檔案
-- 多檔案同時上傳
-- 自動解析多個工作表
-- 檔案大小最大支援 200MB
+## 📋 系統概述
 
-### 📊 資料檢視與編輯
-- 互動式資料預覽
-- 基本資料編輯功能
-- 統計分析和視覺化
-- 資料篩選和匯出
+本系統整合了先進的 AI 技術與汽車銷售業務邏輯，提供：
 
-### 💬 智能問答
-- 整合 LangChain 和 OpenAI
-- 自然語言資料分析
-- 業務指標計算
-- 即時對話式查詢
+- 🤖 **智能問答分析**：使用 LangChain + OpenAI GPT-4 進行自然語言查詢
+- 📊 **雙模式分析**：一般資料探索 + 目標 vs 實際銷售比對
+- 🌐 **現代化 Web 介面**：Streamlit 打造的友善操作界面
+- 📈 **專業業務指標**：達成率、去年比、前月比、推進率自動計算
+- 🔄 **完整資料流程**：檔案上傳、資料檢視、智能分析一站式服務
 
-## 🛠 技術架構
+## 🎯 核心功能
 
-- **前端**: Streamlit
-- **資料處理**: Pandas, NumPy
-- **AI 整合**: LangChain, OpenAI API
-- **檔案處理**: openpyxl, xlrd
-- **部署**: Streamlit Cloud
+### 1. 📤 資料上傳管理
+- **多檔案支援**：同時上傳多個 Excel 檔案
+- **自動檢測**：智能識別目標檔案、實績檔案、映射表
+- **格式驗證**：確保資料格式符合業務需求
+- **即時狀態**：檔案上傳狀態和大小顯示
 
-## 📦 專案結構
+### 2. 📊 資料檢視分析
+- **全方位預覽**：資料表頭、統計資訊、缺失值分析
+- **彈性檢視**：可調整顯示行數、欄位資訊詳細展示
+- **多表管理**：支援多個資料集同時檢視和管理
+
+### 3. 💬 智能問答系統
+- **自然語言查詢**：支援中文自然語言問答
+- **業務邏輯整合**：內建汽車銷售專業術語和計算規則
+- **範例查詢**：預設常用查詢模板，一鍵執行
+- **聊天記錄**：保留查詢歷史，便於追蹤分析過程
+
+## 🏗️ 技術架構
 
 ```
-HOTAI MOTOR/
-├── streamlit_app.py           # 主應用程式
-├── requirements.txt           # Python 依賴套件
-├── README.md                 # 專案說明文件
-├── CLAUDE.md                 # Claude Code 指引
-├── .streamlit/
-│   └── config.toml           # Streamlit 配置
-├── utils/
-│   ├── __init__.py
-│   ├── data_processor.py     # 資料處理工具
-│   └── langchain_integration.py  # LangChain 整合
-└── 現有檔案/
-    ├── app.py               # 原始 Streamlit 應用
-    ├── solution_combine.py   # LangChain 主程式
-    ├── solution1.py         # 分析工具 1
-    ├── solution3.py         # 分析工具 3
-    └── *.xlsx              # 範例資料檔案
+HOTAI MOTOR 銷售數據分析平台
+├── 🌐 Web 前端 (Streamlit)
+│   ├── 📤 檔案上傳介面
+│   ├── 📊 資料檢視與管理
+│   └── 💬 智能問答介面
+├── 🤖 AI 分析引擎 (LangChain)
+│   ├── solution_combine.py - 主要整合邏輯
+│   ├── solution1.py - 一般資料分析工具
+│   └── solution3.py - 目標對比分析工具
+└── 📊 資料處理層
+    ├── Excel 檔案解析
+    ├── 多工作表管理
+    └── 業務指標計算
 ```
 
-## 🚀 部署到 Streamlit Cloud
+## 🚀 快速開始
 
-### 步驟 1: 準備 GitHub 儲存庫
-
-1. 在 GitHub 上建立新的儲存庫
-2. 將所有檔案上傳到儲存庫，確保包含：
-   - `streamlit_app.py` (主要應用程式檔案)
-   - `requirements.txt`
-   - `.streamlit/config.toml`
-   - `utils/` 目錄及所有內容
-
-### 步驟 2: 設定 Streamlit Cloud
-
-1. 前往 [share.streamlit.io](https://share.streamlit.io)
-2. 使用 GitHub 帳戶登入
-3. 點擊 "New app"
-4. 選擇您的 GitHub 儲存庫
-5. 設定以下參數：
-   - **Repository**: 您的儲存庫名稱
-   - **Branch**: `main` 或 `master`
-   - **Main file path**: `streamlit_app.py`
-
-### 步驟 3: 環境變數設定
-
-在 Streamlit Cloud 的 App settings → Advanced settings → Secrets 中新增：
-
-```toml
-# .streamlit/secrets.toml 格式
-OPENAI_API_KEY = "your-openai-api-key-here"
-
-# 可選的其他設定
-[general]
-app_name = "HOTAI MOTOR Analysis Platform"
-version = "1.0.0"
-```
-
-### 步驟 4: 部署確認
-
-1. 點擊 "Deploy" 按鈕
-2. 等待應用程式建置完成（通常需要 2-5 分鐘）
-3. 檢查應用程式是否正常運行
-4. 測試所有功能：檔案上傳、資料檢視、AI 問答
-
-## 🔧 本地開發環境設定
-
-### 環境需求
+### 環境要求
 - Python 3.8+
-- pip 套件管理器
+- OpenAI API Key
 
-### 安裝步驟
-
+### 1. 安裝依賴套件
 ```bash
-# 1. 複製專案
-git clone <your-repository-url>
-cd HOTAI-MOTOR
-
-# 2. 建立虛擬環境
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# 或
-venv\Scripts\activate     # Windows
-
-# 3. 安裝依賴套件
 pip install -r requirements.txt
+```
 
-# 4. 設定環境變數
-# 建立 .streamlit/secrets.toml 檔案
-mkdir .streamlit
-echo 'OPENAI_API_KEY = "your-api-key-here"' > .streamlit/secrets.toml
+### 2. 設定 API Key
+在 Streamlit Cloud 的 Secrets 設定中新增：
+```toml
+OPENAI_API_KEY = "your-openai-api-key-here"
+```
 
-# 5. 執行應用程式
+### 3. 啟動應用程式
+```bash
 streamlit run streamlit_app.py
 ```
 
-## 🔑 API Key 管理
+### 4. 準備資料檔案
+系統需要以下三個 Excel 檔案：
+- `MBIS實績_2025上半年.xlsx` - 實際銷售資料
+- `經銷商目標_2025上半年.xlsx` - 銷售目標資料
+- `Mapping Dataframe.xlsx` - 經銷商對應表
 
-### 取得 OpenAI API Key
-1. 前往 [OpenAI Platform](https://platform.openai.com/api-keys)
-2. 登入您的帳戶
-3. 建立新的 API Key
-4. 複製 API Key（請妥善保存，它只會顯示一次）
+## 📁 專案結構
 
-### 設定方式
-
-#### 本地開發
-在 `.streamlit/secrets.toml` 中設定：
-```toml
-OPENAI_API_KEY = "sk-your-api-key-here"
+```
+HOTAI MOTOR/
+├── streamlit_app.py          # Streamlit Web 應用程式
+├── solution_combine.py       # 核心 LangChain 整合邏輯
+├── solution1.py             # 一般資料分析工具集
+├── solution3.py             # 目標對比分析工具集
+├── requirements.txt         # Python 套件依賴
+├── README.md               # 專案說明文件
+├── CHANGELOG.md            # 程式變動記錄
+├── MBIS實績_2025上半年.xlsx    # 實績資料檔案
+├── 經銷商目標_2025上半年.xlsx   # 目標資料檔案
+└── Mapping Dataframe.xlsx   # 經銷商映射表
 ```
 
-#### Streamlit Cloud 部署
-在 App settings → Advanced settings → Secrets 中設定：
-```toml
-OPENAI_API_KEY = "sk-your-api-key-here"
+## 💡 使用說明
+
+### 資料上傳
+1. 進入「📤 資料上傳」頁面
+2. 點擊「選擇 Excel 檔案」上傳必要資料檔案
+3. 系統會自動檢查檔案狀態並顯示上傳結果
+
+### 資料檢視
+1. 進入「📊 資料檢視」頁面
+2. 選擇要檢視的資料集
+3. 查看資料統計、預覽內容和欄位資訊
+
+### 智能問答
+1. 進入「💬 智能問答」頁面
+2. 輸入自然語言查詢或點擊範例查詢
+3. 系統會自動調用 LangChain 進行分析並顯示結果
+
+### 範例查詢
+
+```
+"請提供5/22 TOYOTA各車種的販賣台數"
+"哪一個據點在 1 月販賣進度最快？"
+"經銷商達標狀況分析"
+"哪個車款販售得最少？"
 ```
 
-## 📝 使用說明
+## 🔧 業務邏輯說明
 
-### 1. 資料上傳
-1. 選擇「📤 資料上傳」頁面
-2. 拖拽或選擇 Excel/CSV 檔案
-3. 等待上傳完成
-4. 檢視檔案摘要
+### 專業術語定義
+- **C CROSS** = CC, **Y CROSS** = YC
+- **HV** = **HEV** = 油電車
+- **據點** = **營業所**, **大盤** = **全體進度**
 
-### 2. 資料檢視與編輯
-1. 選擇「📊 資料檢視與編輯」頁面
-2. 選擇檔案和工作表
-3. 使用各種分析工具：
-   - 資料預覽
-   - 基本編輯
-   - 統計分析
-   - 資料篩選
+### 業務指標計算
+- **去年比** = 今年實績台數 / 去年實績台數 × 100%
+- **前月比** = 本月實績台數 / 上月實績台數 × 100%
+- **達成率** = 實績台數 / 目標台數 × 100%
+- **推進率** = 實績台數 / 目標台數 × 100%（當月進度）
 
-### 3. 智能問答
-1. 選擇「💬 智能問答」頁面
-2. 確認已設定 OpenAI API Key
-3. 在聊天框中輸入問題
-4. 等待 AI 分析回應
+### 分析流程
+1. **一般分析流程**：資料探索、排行分析、統計計算
+2. **目標對比流程**：目標 vs 實際銷售達標比對分析
 
-## 🔧 進階配置
+## 🛠️ 開發說明
 
-### 自定義主題
-在 `.streamlit/config.toml` 中修改：
-```toml
-[theme]
-primaryColor = "#1f77b4"      # 主要顏色
-backgroundColor = "#ffffff"    # 背景顏色
-secondaryBackgroundColor = "#f0f2f6"  # 次要背景顏色
-textColor = "#262730"         # 文字顏色
+### 核心原則
+- **完全保留原始 LangChain 程式碼**：不修改任何分析邏輯
+- **純 Web 介面整合**：只提供 Streamlit 展示層
+- **業務邏輯不變**：所有計算和分析完全依照原始程式
+
+### 主要模組
+- `streamlit_app.py`：Web 介面，負責檔案管理和結果展示
+- `solution_combine.py`：主要分析邏輯，整合兩種分析流程
+- `solution1.py`：一般資料分析工具，包含檔案讀取和 Pandas Agent
+- `solution3.py`：目標對比分析工具，包含檔案分類和達標比對
+
+## 📊 系統需求
+
+### 必要套件
+```
+streamlit>=1.28.0
+pandas>=1.5.0
+langchain>=0.1.0
+langchain-openai>=0.0.5
+langchain-experimental>=0.0.50
+openai>=1.0.0
+openpyxl>=3.0.0
+tabulate>=0.9.0
 ```
 
-### 效能優化
-```toml
-[server]
-maxUploadSize = 200          # 檔案上傳大小限制 (MB)
-enableCORS = true            # 啟用 CORS
-enableWebsocketCompression = true  # 啟用 WebSocket 壓縮
-```
+### 資料格式要求
+- **Excel 檔案**：支援 .xlsx, .xls 格式
+- **工作表**：支援多工作表結構
+- **編碼**：UTF-8 編碼
+- **大小限制**：單檔案 < 200MB
 
-## 🐛 疑難排解
+## 🚀 部署指南
 
-### 常見問題
+### Streamlit Cloud 部署
+1. 連接 GitHub 儲存庫
+2. 設定主檔案路徑：`streamlit_app.py`
+3. 在 Advanced settings → Secrets 中設定 `OPENAI_API_KEY`
+4. 部署完成後即可使用
 
-#### 1. LangChain 相關錯誤
-**問題**: `ModuleNotFoundError: No module named 'langchain'`
-**解決**: 確認 requirements.txt 包含所有必要套件並重新安裝
+### 本地開發環境
+1. Clone 專案到本地
+2. 安裝依賴套件：`pip install -r requirements.txt`
+3. 設定環境變數或建立 `secret_key` 檔案
+4. 執行：`streamlit run streamlit_app.py`
 
-#### 2. OpenAI API 錯誤
-**問題**: `openai.error.AuthenticationError`
-**解決**: 檢查 API Key 是否正確設定在環境變數中
+## 📝 版本資訊
 
-#### 3. 檔案上傳失敗
-**問題**: 檔案上傳時出現錯誤
-**解決**: 
-- 檢查檔案大小是否超過 200MB
-- 確認檔案格式為 .xlsx, .xls, 或 .csv
-- 檢查檔案是否損壞
+- **目前版本**：v1.0.0
+- **最後更新**：2025-01-25
+- **相容性**：Python 3.8+, Streamlit 1.28+
 
-#### 4. 應用程式載入緩慢
-**解決**:
-- 檢查網路連線
-- 減少上傳檔案大小
-- 清除瀏覽器快取
+## 🤝 貢獻指南
 
-## 📊 效能指標
+歡迎提交問題回報、功能建議或貢獻程式碼：
 
-- **檔案上傳**: 支援最大 200MB
-- **資料處理**: 支援百萬行級別資料
-- **回應時間**: AI 問答通常 3-10 秒
-- **並發支援**: Streamlit Cloud 預設支援多用戶
+1. Fork 專案
+2. 建立功能分支：`git checkout -b feature/new-feature`
+3. 提交變更：`git commit -am 'Add new feature'`
+4. 推送分支：`git push origin feature/new-feature`
+5. 建立 Pull Request
 
-## 🔄 更新與維護
+## 📄 授權條款
 
-### 版本更新
-1. 修改程式碼
-2. 更新 `requirements.txt`（如有新依賴）
-3. 提交到 GitHub
-4. Streamlit Cloud 會自動重新部署
-
-### 監控與除錯
-- 檢查 Streamlit Cloud 的 logs
-- 使用瀏覽器開發者工具檢查前端錯誤
-- 監控 OpenAI API 使用量和成本
+本專案採用 MIT 授權條款。詳細資訊請參考 [LICENSE](LICENSE) 檔案。
 
 ## 📞 支援與聯絡
 
-如有問題或建議，請聯絡開發團隊或在 GitHub 上提交 issue。
+如有任何問題或需要技術支援，請透過以下方式聯繫：
 
-## 📜 授權條款
+- 🐛 問題回報：[GitHub Issues](https://github.com/victoria304040/AI-Powered-Automotive-Business-Intelligence-System/issues)
+- 📧 Email：透過 GitHub 聯繫
+- 📚 文檔：查閱本 README 和 [程式變動記錄](CHANGELOG.md)
 
-本專案採用 MIT License 授權。
+---
+
+**Made with ❤️ for HOTAI MOTOR | Powered by LangChain & Streamlit**
