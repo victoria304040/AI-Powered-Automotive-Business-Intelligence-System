@@ -378,8 +378,9 @@ def qa_interface_page():
             with st.chat_message("assistant"):
                 with st.spinner("正在分析..."):
                     try:
-                        # 這裡將整合您的 LangChain 程式碼
-                        response_result = generate_response_with_debug(prompt)
+                        # 恢復到原始的 LangChain 整合，不使用 DEBUG 模式
+                        response_result = generate_response(prompt)
+                        st.markdown(response_result)
                         
                         # 添加助手回應
                         st.session_state.chat_history.append({"role": "assistant", "content": response_result})
@@ -390,10 +391,10 @@ def qa_interface_page():
                         st.session_state.chat_history.append({"role": "assistant", "content": error_msg})
 
 # 整合 LangChain 的回應生成函數
-def generate_response(prompt: str):
+def generate_response(prompt: str) -> str:
     """
     整合 HOTAI MOTOR LangChain 分析功能的回應生成函數
-    修復版本：改善錯誤處理和回應格式解析
+    恢復到原始版本（無 DEBUG），但保留錯誤處理改進
     """
     try:
         # 匯入 LangChain 整合模組
@@ -407,95 +408,39 @@ def generate_response(prompt: str):
         
         # 檢查回應是否包含錯誤
         if isinstance(response, dict) and response.get("error", False):
-            return {"success": False, "response": None, "error": response.get("output", "未知錯誤")}
+            # 如果有錯誤，返回錯誤訊息但繼續嘗試備用邏輯
+            error_msg = response.get("output", "未知錯誤")
+            if not st.session_state.uploaded_data:
+                return "請先上傳資料檔案，然後再進行問答。"
+            return error_msg
         
-        return {"success": True, "response": response, "error": None}
+        # 準備回傳結果（恢復原始邏輯）
+        output = response["output"]
+        
+        # 如果有執行步驟資訊，可以選擇性顯示
+        if isinstance(response, dict) and "steps_summary" in response and response["steps_summary"]:
+            output += f"\n\n---\n*{response['steps_summary']}*"
+        
+        # 如果有成本資訊，可以選擇性顯示
+        if isinstance(response, dict) and response.get("cost", 0) > 0:
+            output += f"\n\n💰 *API 成本: ${response['cost']:.4f} | Token: {response.get('tokens', 0)}*"
+        
+        return output
         
     except ImportError as e:
-        error_msg = f"❌ LangChain 模組載入失敗: {str(e)}\n\n請確認已安裝所有必要套件：\n- langchain\n- langchain-openai\n- langchain-experimental\n- tabulate"
-        return {"success": False, "response": None, "error": error_msg}
+        return f"❌ LangChain 模組載入失敗: {str(e)}\n\n請確認已安裝所有必要套件：\n- langchain\n- langchain-openai\n- langchain-experimental\n- tabulate"
     
     except Exception as e:
-        # 增強錯誤診斷
-        error_details = str(e)
-        
-        if "authentication" in error_details.lower() or "api_key" in error_details.lower():
-            error_msg = f"❌ OpenAI API 認證失敗: {error_details}\n\n解決方案：\n1. 檢查 OPENAI_API_KEY 環境變數\n2. 確認 API Key 有效且有足夠額度\n3. 檢查網路連線"
-        elif "rate limit" in error_details.lower():
-            error_msg = f"❌ API 使用頻率超限: {error_details}\n\n解決方案：\n1. 稍後重試\n2. 檢查 API 使用配額\n3. 考慮升級 API 方案"
-        elif "model" in error_details.lower():
-            error_msg = f"❌ 模型存取錯誤: {error_details}\n\n解決方案：\n1. 檢查模型名稱是否正確\n2. 確認帳戶有該模型存取權限"
-        else:
-            error_msg = f"❌ 處理查詢時發生錯誤: {error_details}\n\n請檢查:\n1. 網路連線是否穩定\n2. 上傳的資料格式是否正確\n3. 查詢內容是否合理"
-        
-        return {"success": False, "response": None, "error": error_msg}
-
-
-def generate_response_with_debug(prompt: str) -> str:
-    """
-    帶 DEBUG 模式的回應生成函數
-    修復版：確保 DEBUG 不影響原始回應品質
-    """
-    import json
-    
-    # 獲取完整回應
-    full_response = generate_response(prompt)
-    
-    if full_response["success"]:
-        # 取得原始回應
-        response = full_response["response"]
-        
-        # 決定要返回給用戶的主要內容（不受 DEBUG 影響）
-        if isinstance(response, dict):
-            # 如果是字典，優先使用 output 欄位，否則轉換為字符串
-            main_output = response.get("output", response)
-            if not isinstance(main_output, str):
-                main_output = str(main_output)
-        else:
-            # 如果不是字典，直接使用原始回應
-            main_output = str(response)
-        
-        # === DEBUG 區塊：完全獨立，不影響主要回應 ===
-        st.subheader("🔍 DEBUG MODE")
-        
-        st.text("Raw LangChain Response Type:")
-        st.code(f"Type: {type(response)}")
-        
-        st.text("Raw LangChain Response Content:")
-        if isinstance(response, dict):
-            st.code(json.dumps(response, indent=2, ensure_ascii=False), language="json")
-        else:
-            st.code(str(response))
-        
-        st.text("Processed Output:")
-        st.code(main_output)
-        
-        # === 顯示實際回應給用戶 ===
-        st.markdown("---")
-        st.markdown("**🤖 AI 回應結果:**")
-        st.markdown(main_output)
-        
-        return main_output
-        
-    else:
-        # DEBUG：顯示錯誤資訊
-        st.subheader("🔍 DEBUG MODE")
-        st.text("Error Response:")
-        st.code(full_response["error"])
-        
-        # 返回備用分析
+        # 備用的簡單回應邏輯（保留原始邏輯）
         if not st.session_state.uploaded_data:
-            fallback_msg = "請先上傳資料檔案，然後再進行問答。"
-            st.markdown("**Fallback Response:**")
-            st.markdown(fallback_msg)
-            return fallback_msg
+            return "請先上傳資料檔案，然後再進行問答。"
         
         # 簡化版分析（當 LangChain 不可用時）
         if st.session_state.current_data is not None:
             df = st.session_state.current_data
             
             if "摘要" in prompt or "總結" in prompt:
-                fallback_msg = f"""
+                return f"""
 📊 **資料摘要**
 - 總行數: {len(df):,}
 - 總欄數: {len(df.columns)}
@@ -505,23 +450,27 @@ def generate_response_with_debug(prompt: str) -> str:
 
 ⚠️ 注意: 目前使用簡化版分析功能。完整的 AI 分析需要正確設定 OpenAI API Key。
                 """
-                st.markdown("**Fallback Response:**")
-                st.markdown(fallback_msg)
-                return fallback_msg
             
             elif "欄位" in prompt or "columns" in prompt.lower():
                 cols_info = "📋 **資料欄位:**\n"
                 for i, col in enumerate(df.columns, 1):
                     cols_info += f"{i}. {col} ({df[col].dtype})\n"
                 cols_info += "\n⚠️ 注意: 目前使用簡化版功能。"
-                st.markdown("**Fallback Response:**")
-                st.markdown(cols_info)
                 return cols_info
         
-        error_msg = full_response["error"]
-        st.markdown("**Error Message:**")
-        st.markdown(error_msg)
-        return error_msg
+        # 增強錯誤診斷（保留改進的錯誤處理）
+        error_details = str(e)
+        
+        if "authentication" in error_details.lower() or "api_key" in error_details.lower():
+            return f"❌ OpenAI API 認證失敗: {error_details}\n\n解決方案：\n1. 檢查 OPENAI_API_KEY 環境變數\n2. 確認 API Key 有效且有足夠額度\n3. 檢查網路連線"
+        elif "rate limit" in error_details.lower():
+            return f"❌ API 使用頻率超限: {error_details}\n\n解決方案：\n1. 稍後重試\n2. 檢查 API 使用配額\n3. 考慮升級 API 方案"
+        elif "model" in error_details.lower():
+            return f"❌ 模型存取錯誤: {error_details}\n\n解決方案：\n1. 檢查模型名稱是否正確\n2. 確認帳戶有該模型存取權限"
+        else:
+            return f"❌ 處理查詢時發生錯誤: {error_details}\n\n請檢查:\n1. 網路連線是否穩定\n2. 上傳的資料格式是否正確\n3. 查詢內容是否合理"
+
+
 
 # 系統資訊頁面
 def system_info_page():
