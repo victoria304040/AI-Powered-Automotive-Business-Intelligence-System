@@ -28,10 +28,13 @@ dataframes = {}
 # 新增映射表查詢工具
 @tool
 def get_dealer_mapping(query_code: str) -> str:
-    """查詢經銷商或營業所的映射資訊
+    """智能映射表查詢工具
     
     Args:
-        query_code: 要查詢的代碼，可以是經銷商代碼或營業所代碼
+        query_code: 要查詢的代碼，支援：
+                   - 組合代碼: D01, D1 (自動拆解為經銷商+營業所)
+                   - 經銷商代碼: A, B, C, D, E, F, G, H
+                   - 營業所代碼: 01, 02, 03, ..., 36
         
     Returns:
         str: 對應的映射資訊，包含經銷商名稱和營業所名稱
@@ -41,34 +44,62 @@ def get_dealer_mapping(query_code: str) -> str:
         df = pd.read_excel("Mapping Dataframe.xlsx", dtype=str)
         
         # 清理查詢代碼
-        query_code = str(query_code).strip()
+        query_code = str(query_code).strip().upper()
         
-        # 搜尋代碼 - 同時搜尋經銷商代碼和營業所代碼
-        dealer_match = df[df['經銷商代碼'].str.strip() == query_code]
-        site_match = df[df['營業所代碼'].str.strip() == query_code]
-        
-        results = []
-        
-        if len(dealer_match) > 0:
-            # 找到經銷商代碼匹配
-            for _, row in dealer_match.iterrows():
+        # 檢查是否為組合代碼（字母+數字）
+        if len(query_code) >= 2 and query_code[0].isalpha() and query_code[1:].isdigit():
+            # 組合代碼拆解：D01, D1 等
+            dealer_code = query_code[0]
+            site_code = query_code[1:].zfill(2)  # 自動補零：D1 → 01
+            
+            # 精確查詢：指定經銷商的指定營業所
+            exact_match = df[
+                (df['經銷商代碼'].str.strip() == dealer_code) & 
+                (df['營業所代碼'].str.strip() == site_code)
+            ]
+            
+            if len(exact_match) > 0:
+                # 找到精確匹配
+                row = exact_match.iloc[0]
                 dealer_name = row['經銷商名稱'].strip()
-                site_name = row['營業所名稱'].strip() 
-                site_code = row['營業所代碼'].strip()
-                results.append(f"經銷商 {query_code} ({dealer_name}) - 營業所 {site_code} ({site_name})")
-        
-        if len(site_match) > 0:
-            # 找到營業所代碼匹配
-            for _, row in site_match.iterrows():
-                dealer_name = row['經銷商名稱'].strip()
-                dealer_code = row['經銷商代碼'].strip()
                 site_name = row['營業所名稱'].strip()
-                results.append(f"營業所 {query_code} ({site_name}) - 屬於經銷商 {dealer_code} ({dealer_name})")
+                return f"找到匹配 '{query_code}':\n經銷商 {dealer_code} ({dealer_name}) - 營業所 {site_code} ({site_name})"
+            else:
+                # 沒有精確匹配，檢查經銷商是否存在
+                dealer_exists = df[df['經銷商代碼'].str.strip() == dealer_code]
+                if len(dealer_exists) > 0:
+                    return f"組合代碼 '{query_code}' 不存在。\n經銷商 {dealer_code} ({dealer_exists.iloc[0]['經銷商名稱'].strip()}) 沒有營業所 {site_code}。"
+                else:
+                    return f"組合代碼 '{query_code}' 不存在。\n經銷商代碼 {dealer_code} 不存在。"
         
-        if results:
-            return "找到以下映射資訊:\n" + "\n".join(results)
         else:
-            return f"找不到代碼 '{query_code}' 的對應資訊。請確認代碼是否正確。"
+            # 單一代碼查詢（原有邏輯）
+            # 搜尋代碼 - 同時搜尋經銷商代碼和營業所代碼
+            dealer_match = df[df['經銷商代碼'].str.strip() == query_code]
+            site_match = df[df['營業所代碼'].str.strip() == query_code]
+            
+            results = []
+            
+            if len(dealer_match) > 0:
+                # 找到經銷商代碼匹配
+                for _, row in dealer_match.iterrows():
+                    dealer_name = row['經銷商名稱'].strip()
+                    site_name = row['營業所名稱'].strip() 
+                    site_code = row['營業所代碼'].strip()
+                    results.append(f"經銷商 {query_code} ({dealer_name}) - 營業所 {site_code} ({site_name})")
+            
+            if len(site_match) > 0:
+                # 找到營業所代碼匹配
+                for _, row in site_match.iterrows():
+                    dealer_name = row['經銷商名稱'].strip()
+                    dealer_code = row['經銷商代碼'].strip()
+                    site_name = row['營業所名稱'].strip()
+                    results.append(f"營業所 {query_code} ({site_name}) - 屬於經銷商 {dealer_code} ({dealer_name})")
+            
+            if results:
+                return "找到以下映射資訊:\n" + "\n".join(results)
+            else:
+                return f"找不到代碼 '{query_code}' 的對應資訊。請確認代碼是否正確。"
             
     except Exception as e:
         return f"查詢映射資料時發生錯誤: {str(e)}"
